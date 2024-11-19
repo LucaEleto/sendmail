@@ -13,7 +13,7 @@ import time
 # Configurações do servidor SMTP
 server_smtp = "smtp.gmail.com"
 porta = 587
-remetente = "lucavilarino321@gmail.com"
+remetente = "xxxxxxxxxxxxx"
 senha = senha
 
 # Diretórios onde estão localizados os arquivos XML e os arquivos a serem enviados
