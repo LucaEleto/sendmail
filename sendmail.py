@@ -13,14 +13,14 @@ import time
 # Configurações do servidor SMTP
 server_smtp = "smtp.gmail.com"
 porta = 587
-remetente = "xxxxxxxxxxxxx"
+remetente = "lucavilarino321@gmail.com"
 senha = senha
 
 # Diretórios onde estão localizados os arquivos XML e os arquivos a serem enviados
-pasta_xml = r"C:\Check6\Novo Sendmail"
-pasta_arquivos = r"C:\Check6\NFe\PROTOCOLADAS"
+pasta_xml = r"C:\Users\lucav\OneDrive\Documentos\GitHub\sendmail"
+pasta_arquivos = r"C:\Users\lucav\OneDrive\Área de Trabalho\Notas"
 
-def enviar_email(destinatario, assunto, corpo, arquivo_anexo):
+def enviar_email(destinatario, assunto, corpo, arquivos_anexos):
     try:
         # Criação do email
         mensagem = MIMEMultipart()
@@ -29,8 +29,8 @@ def enviar_email(destinatario, assunto, corpo, arquivo_anexo):
         mensagem['Subject'] = assunto
         mensagem.attach(MIMEText(corpo, 'plain'))
 
-        # Anexando o arquivo
-        if arquivo_anexo:
+        # Anexando os arquivos
+        for arquivo_anexo in arquivos_anexos:
             with open(arquivo_anexo, 'rb') as file:
                 part = MIMEBase('application', 'octet-stream')
                 part.set_payload(file.read())
@@ -74,26 +74,28 @@ def obter_dados_do_xml(caminho_xml):
         print(f"Erro ao ler o arquivo XML: {e}")
         return None, None
 
-def localizar_arquivo_com_chave(chave_acesso):
-    for arquivo in os.listdir(pasta_arquivos):
-        if chave_acesso in arquivo:
-            return os.path.join(pasta_arquivos, arquivo)
-    return None
+def localizar_arquivos_com_chave(chave_acesso):
+    arquivos_encontrados = []
+    for ext in ['.pdf', '.xml']:
+        arquivo = os.path.join(pasta_arquivos, f"{chave_acesso}-procNfe{ext}")
+        if os.path.exists(arquivo):
+            arquivos_encontrados.append(arquivo)
+    return arquivos_encontrados
 
 def processar_e_enviar(caminho_xml):
     chave_acesso, email_cliente = obter_dados_do_xml(caminho_xml)
     
     if chave_acesso and email_cliente:
-        arquivo_anexo = localizar_arquivo_com_chave(chave_acesso)
+        arquivos_anexos = localizar_arquivos_com_chave(chave_acesso)
         
-        if arquivo_anexo:
+        if arquivos_anexos:
             assunto = "Nota Fiscal Eletrônica"
-            corpo = "Segue em anexo, Nota Fiscal Eletrônica."
-            enviar_email(email_cliente, assunto, corpo, arquivo_anexo)
+            corpo = "Segue em anexo, XML e PDF da Nota Fiscal Eletrônica."
+            enviar_email(email_cliente, assunto, corpo, arquivos_anexos)
             os.remove(caminho_xml)  # Exclui o arquivo XML após o envio
             print(f"Arquivo XML {caminho_xml} enviado e excluído.")
         else:
-            print(f"Arquivo com a chave {chave_acesso} não encontrado na pasta de arquivos.")
+            print(f"Arquivos com a chave {chave_acesso} não encontrados na pasta de arquivos.")
     else:
         print(f"Erro ao extrair dados do XML {caminho_xml}.")
 
