@@ -9,6 +9,14 @@ from segredo import senha
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import time
+import logging
+
+#Configuração log
+logging.basicConfig(
+    filename='log_sendmail', #nome do arquivo
+    level=logging.INFO, #nivel do log
+    format='%(asctime)s - %(levelname)s - %(message)s' #formato da mensagem
+)
 
 # Configurações do servidor SMTP
 server_smtp = "smtp.gmail.com"
@@ -44,13 +52,15 @@ def enviar_email(destinatario, assunto, corpo, arquivos_anexos):
         server.login(remetente, senha)
         server.sendmail(remetente, destinatario, mensagem.as_string())
         server.quit()
-
+        logging.info(f'Email enviado com sucesso para o {destinatario}')
         print(f"Email enviado com sucesso para {destinatario}")
     except Exception as e:
+        logging.info(f"Houve um erro ao enviar o email: {e}")
         print(f"Houve um erro ao enviar o email: {e}")
 
 def obter_dados_do_xml(caminho_xml):
     try:
+        logging.info(f'Lendo o arquivo XML: {caminho_xml}')
         tree = ET.parse(caminho_xml)
         root = tree.getroot()
         
@@ -71,6 +81,7 @@ def obter_dados_do_xml(caminho_xml):
                 
         return chave_acesso, email_cliente
     except Exception as e:
+        logging.info(f'Erro ao ler o arquivo XML {caminho_xml}: {e}')
         print(f"Erro ao ler o arquivo XML: {e}")
         return None, None
 
@@ -80,6 +91,7 @@ def localizar_arquivos_com_chave(chave_acesso):
         arquivo = os.path.join(pasta_arquivos, f"{chave_acesso}-procNfe{ext}")
         if os.path.exists(arquivo):
             arquivos_encontrados.append(arquivo)
+            logging.info(f'Arquivo encontrado: {arquivo}')
     return arquivos_encontrados
 
 def processar_e_enviar(caminho_xml):
@@ -93,10 +105,13 @@ def processar_e_enviar(caminho_xml):
             corpo = "Segue em anexo, XML e PDF da Nota Fiscal Eletrônica."
             enviar_email(email_cliente, assunto, corpo, arquivos_anexos)
             os.remove(caminho_xml)  # Exclui o arquivo XML após o envio
+            logging.info(f"Arquivo XML {caminho_xml} enviado e excluído.")
             print(f"Arquivo XML {caminho_xml} enviado e excluído.")
         else:
+            logging.info(f"Arquivos com a chave {chave_acesso} não encontrados na pasta de arquivos.")
             print(f"Arquivos com a chave {chave_acesso} não encontrados na pasta de arquivos.")
     else:
+        logging.info(f"Erro ao extrair dados do XML {caminho_xml}.")
         print(f"Erro ao extrair dados do XML {caminho_xml}.")
 
 # Classe de evento para monitorar novos arquivos XML na pasta
@@ -105,6 +120,7 @@ class MonitoramentoHandler(FileSystemEventHandler):
         if event.is_directory:
             return
         if event.src_path.endswith(".xml"):
+            logging.info(f"Novo arquivo detectado: {event.src_path}")
             print(f"Novo arquivo detectado: {event.src_path}")
             processar_e_enviar(event.src_path)
 
@@ -114,6 +130,7 @@ def monitorar_pasta():
     event_handler = MonitoramentoHandler()
     observer.schedule(event_handler, pasta_xml, recursive=False)
     observer.start()
+    logging.info(f"Monitorando a pasta {pasta_xml} para novos arquivos XML...")
     print(f"Monitorando a pasta {pasta_xml} para novos arquivos XML...")
 
     try:
@@ -121,6 +138,7 @@ def monitorar_pasta():
             time.sleep(1)  # Mantém o monitoramento ativo
     except KeyboardInterrupt:
         observer.stop()
+        logging.info('Monitoramento interrompido pelo usuário')
     observer.join()
 
 # Inicia o monitoramento da pasta XML
